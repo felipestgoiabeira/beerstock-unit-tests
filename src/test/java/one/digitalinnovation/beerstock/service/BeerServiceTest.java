@@ -20,7 +20,7 @@ import java.util.Optional;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class BeerServiceTest {
@@ -119,5 +119,34 @@ public class BeerServiceTest {
         List<BeerDTO> foundBeerDTO = beerService.listAll();
 
         assertThat(foundBeerDTO, is(empty()));
+    }
+
+    @Test
+    void whenExclusionWithValidIdThenABeerShouldBeDeleted() throws BeerNotFoundException {
+        //given
+        BeerDTO expectedDeletedBeerDTO = BeerDTOBuilder.builder().build().toBeerDTO();
+        Beer expectedDeletedBeer = beerMapper.toModel(expectedDeletedBeerDTO);
+
+        //when
+        when(beerRepository.findById(expectedDeletedBeer.getId())).thenReturn(Optional.of(expectedDeletedBeer));
+        doNothing().when(beerRepository).deleteById(expectedDeletedBeer.getId());
+
+        //then
+        beerService.deleteById(expectedDeletedBeerDTO.getId());
+        verify(beerRepository, times(1)).findById(expectedDeletedBeer.getId());
+        verify(beerRepository, times(1)).deleteById(expectedDeletedBeer.getId());
+    }
+
+    @Test
+    void whenExclusionWithInvalidIdThenAnExceptionShouldBeThrow() {
+        //given
+        BeerDTO expectedDeletedBeerDTO = BeerDTOBuilder.builder().build().toBeerDTO();
+        Beer expectedDeletedBeer = beerMapper.toModel(expectedDeletedBeerDTO);
+
+        //when
+        when(beerRepository.findById(expectedDeletedBeer.getId())).thenReturn(Optional.empty());
+
+        //then
+        assertThrows(BeerNotFoundException.class, () -> beerService.deleteById(expectedDeletedBeer.getId()));
     }
 }
